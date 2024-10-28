@@ -10,8 +10,9 @@ import java.util.stream.Collectors;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -93,34 +94,75 @@ public class AuthController {
   
   
   
-  
-  @PostMapping("/signup")
-  public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
+  // 1. Registro de una nueva empresa y usuario inicial (Admin)
+  @PostMapping("/registerCompany")
+  public ResponseEntity<?> registerCompany(@Valid @RequestBody SignupRequest signUpRequest) {
       if (userRepository.existsByUsername(signUpRequest.getUsername())) {
-          return ResponseEntity
-                  .badRequest()
-                  .body(new MessageResponse("Error: Username is already taken!"));
+          return ResponseEntity.badRequest().body(new MessageResponse("Error: Username is already taken!"));
       }
 
       if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-          return ResponseEntity
-                  .badRequest()
-                  .body(new MessageResponse("Error: Email is already in use!"));
+          return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
       }
 
-      // Buscar o crear el tenant
+      // Crear el tenant si no existe
       Tenant tenant = tenantRepository.findByName(signUpRequest.getTenantName())
               .orElseGet(() -> tenantRepository.save(new Tenant(signUpRequest.getTenantName())));
 
-      // Crear el nuevo usuario
+      // Crear el usuario con rol de ADMIN por defecto
       User user = new User(signUpRequest.getUsername(),
               signUpRequest.getEmail(),
               encoder.encode(signUpRequest.getPassword()));
-      user.setTenant(tenant); // Asocia el usuario con el tenant
+      user.setTenant(tenant);
 
+      // Asignar el rol de administrador al usuario inicial
+      Role adminRole = roleRepository.findByName(ERole.ROLE_ADMIN)
+              .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+      user.setRoles(Set.of(adminRole));
+
+      // Guardar el usuario inicial
+      userRepository.save(user);
+
+      // Asociar el usuario inicial a un proyecto si se proporciona
+    //  String projectName = signUpRequest.getProjectName();
+      //if (projectName != null && !projectName.isEmpty()) {
+        //  Project project = projectRepository.findByNameAndTenantId(projectName, tenant.getId())
+          //        .orElseGet(() -> projectRepository.save(new Project(projectName, tenant)));
+          //project.getMembers().add(user);
+          //projectRepository.save(project);
+      //}
+
+      return ResponseEntity.ok(new MessageResponse("Company and Admin registered successfully!"));
+  }
+
+  // 2. Registro de un usuario en una empresa existente
+  @PostMapping("/registerUserToCompany")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<?> registerUserToCompany(@Valid @RequestBody SignupRequest signUpRequest) {
+      if (!tenantRepository.existsByName(signUpRequest.getTenantName())) {
+          return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse("Tenant not found"));
+      }
+
+      if (userRepository.existsByUsername(signUpRequest.getUsername())) {
+          return ResponseEntity.badRequest().body(new MessageResponse("Error: Username is already taken!"));
+      }
+
+      if (userRepository.existsByEmail(signUpRequest.getEmail())) {
+          return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
+      }
+
+      // Asignar el usuario al tenant existente
+      Tenant tenant = tenantRepository.findByName(signUpRequest.getTenantName())
+              .orElseThrow(() -> new RuntimeException("Error: Tenant is not found."));
+      User user = new User(signUpRequest.getUsername(),
+              signUpRequest.getEmail(),
+              encoder.encode(signUpRequest.getPassword()));
+      user.setTenant(tenant);
+
+      // Asignar roles en base a la solicitud
       Set<String> strRoles = signUpRequest.getRole();
+      System.out.println(strRoles.toString());
       Set<Role> roles = new HashSet<>();
-
       if (strRoles == null) {
           Role userRole = roleRepository.findByName(ERole.ROLE_USER)
                   .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
@@ -145,27 +187,18 @@ public class AuthController {
               }
           });
       }
-
       user.setRoles(roles);
-      
-      // Guardar el usuario antes de asociarlo a un proyecto
+
+      // Guardar el nuevo usuario en el tenant
       userRepository.save(user);
 
-      // Asociar el usuario a un proyecto si se proporcionó
+      // Asociar al proyecto si se proporciona
       String projectName = signUpRequest.getProjectName();
       if (projectName != null && !projectName.isEmpty()) {
-          Optional<Project> projectExist = projectRepository.findByNameAndTenantId(projectName, user.getTenant().getId());
-          if (projectExist.isPresent()) {
-              // Añadir el usuario al proyecto
-              Project project = projectExist.get();
-              project.getMembers().add(user);
-              projectRepository.save(project);
-          } else {
-        	  ResponseEntity.status(404)
-        	  .body( new MessageResponse("Project not found for the given name and tenant"));
-              // Manejar el caso en que el proyecto no exista
-              //throw new RuntimeException("Project not found for the given name and tenant");
-          }
+          Project project = projectRepository.findByNameAndTenantId(projectName, tenant.getId())
+                  .orElseThrow(() -> new RuntimeException("Project not found for the given name and tenant"));
+          project.getMembers().add(user);
+          projectRepository.save(project);
       }
 
       return ResponseEntity.ok(new MessageResponse("User registered successfully!"));

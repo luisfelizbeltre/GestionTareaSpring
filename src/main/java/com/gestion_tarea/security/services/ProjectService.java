@@ -109,5 +109,13 @@ public class ProjectService {
 	    // Guardar el proyecto actualizado
 	    return projectRepository.save(project);
 	}
+	
+	public List<Project> getProjectsByMenber(Long tenantId,Long userId){
+		return projectRepository.findByTenantIdAndMembers_Id(tenantId,userId);
+	}
+	
+	public List<Project> getProjectsByResponsible(Long tenantId,Long userId){
+		return projectRepository.findByTenantIdAndResponsible_Id(tenantId, userId);
+	}
 
 }

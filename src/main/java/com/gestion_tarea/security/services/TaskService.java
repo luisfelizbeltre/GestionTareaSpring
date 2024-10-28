@@ -14,6 +14,7 @@ import com.gestion_tarea.repository.TaskRepository;
 import com.gestion_tarea.repository.TenantRepository;
 import com.gestion_tarea.repository.UserRepository;
 import java.util.List;
+import java.util.Optional;
 
 	@Service
 	public class TaskService {
@@ -37,6 +38,16 @@ import java.util.List;
 	    // Obtener todas las tareas de un usuario filtrado por tenant y proyecto
 	    public List<Task> getTasksByUsernameAndTenantId(String username, Long tenantId) {
 	        return taskRepository.findByAssignedToUsernameAndTenantId(username, tenantId);
+	    }
+	    
+	    public boolean deleteTaskByIdAndTenantId(Long id, Long tenantId) {
+	    	Optional<Task> task = taskRepository.findByIdAndTenantId(id,tenantId);
+	    	
+	    	if(task.isPresent()) {
+	    		taskRepository.delete(task.get());
+	    		return true;
+	    	}
+	    	return false;
 	    }
 
 	    public Task saveTask(TaskDTO taskDto, Long projectId, Long tenantId) {

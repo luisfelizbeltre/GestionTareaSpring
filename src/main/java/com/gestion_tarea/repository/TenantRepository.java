@@ -9,5 +9,7 @@ import com.gestion_tarea.models.Tenant;
 @Repository
 public interface TenantRepository extends JpaRepository<Tenant, Long> {
     Optional<Tenant> findByName(String name);
+
+	boolean existsByName(String tenantName);
   
 }

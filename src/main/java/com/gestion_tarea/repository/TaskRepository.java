@@ -19,4 +19,6 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 	List<Task> findByAssignedTo(Optional<User> user);
 	 List<Task> findByAssignedToUsernameAndTenantId(String username, Long tenantId);
 //	List<Task> findByAssignedToEmail(String email);
+
+	Optional<Task> findByIdAndTenantId(Long id, Long tenantId);
 }

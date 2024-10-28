@@ -1,6 +1,7 @@
 package com.gestion_tarea.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.gestion_tarea.models.User;
 import com.gestion_tarea.models.UserDto;
@@ -18,6 +19,7 @@ public class UserController {
 //    private RoleRepository roleRepository;
 
     @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR')")
     public List<UserDto> getAllUsers() {
     	
     	

@@ -2,6 +2,8 @@ package com.gestion_tarea.controllers;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import com.gestion_tarea.models.Project;
 import com.gestion_tarea.models.Task;
 import com.gestion_tarea.models.TaskDTO;
+import com.gestion_tarea.repository.UserRepository;
 import com.gestion_tarea.security.services.TaskService;
 import com.gestion_tarea.security.services.UserDetailsImpl;
 
@@ -22,12 +25,17 @@ public class TaskController {
 
     @Autowired
     private TaskService taskService;
+    @Autowired
+    private UserRepository userRepository;
 
     @GetMapping("/all")
     public List<Task> getAllTasks() {
         return taskService.getAllTasks();
     }
 
+
+    
+    
     @GetMapping("")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
     public List<Task> listTasks() {
@@ -35,14 +43,16 @@ public class TaskController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = null;
         Long tenantId = null;
-        @SuppressWarnings("unused")
-		Long idUsername=null;
+        Long idUsername;
         
         if (authentication != null && authentication.getPrincipal() instanceof UserDetailsImpl) {
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
             
             idUsername=userDetails.getId();
             tenantId = userDetails.getTenantId(); // Obtener el tenantId del usuario autenticado
+            
+            username = userRepository.findById(idUsername).get().getUsername();
+            System.out.println(username);
         }
         System.out.println(tenantId+"das------------a---------a");
 
@@ -50,7 +60,30 @@ public class TaskController {
         return taskService.getTasksByUsernameAndTenantId(username, tenantId);
     }
 
-   
+    @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasRole('MODERATOR') or hasRole('ADMIN')")
+    public ResponseEntity<?> deleteTask(@PathVariable("id") Long id){
+    	try {
+			Long tenantId = getAuthenticatedTenantId();
+			
+			boolean deleted = taskService.deleteTaskByIdAndTenantId(id, tenantId);
+			if(deleted) {
+				return ResponseEntity.ok("Tarea eliminada correctamente");
+				
+			}else {
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Tarea no encontrada o no pertenece al tenant");
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al eliminar la tarea");
+		}
+    	
+    	
+    }
+ 
+    
+    
  // Endpoint para agregar una nueva tarea a un proyecto
     @PostMapping("/add")
     @PreAuthorize("hasRole('MODERATOR') or hasRole('ADMIN')")

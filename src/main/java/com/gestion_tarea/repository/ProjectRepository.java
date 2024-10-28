@@ -15,6 +15,9 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
 	Optional<Project> findByNameAndTenantId(String name, Long id);
 	List<Project> findByTenantId(Long id);
 Optional<Project> findByIdAndTenantId(Long id,Long tenantId);
+
+List<Project> findByTenantIdAndMembers_Id(Long tenantId, Long userId);
+List<Project> findByTenantIdAndResponsible_Id(Long tenantId,Long userId);
 	
 
 

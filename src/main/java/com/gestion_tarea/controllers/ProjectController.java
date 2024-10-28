@@ -2,15 +2,17 @@ package com.gestion_tarea.controllers;
 
 
 import java.util.List;
-
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.management.RuntimeErrorException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -86,22 +88,41 @@ public class ProjectController {
 
     
     @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR') or hasRole('USER') ")
     public ResponseEntity<?> getAllProjects() {
         // Obtener el nombre de usuario y el tenantId desde el token JWT
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Long tenantId = null;
+        Long userId=null;
+        Set<String> roles = null;
 
         if (authentication != null && authentication.getPrincipal() instanceof UserDetailsImpl) {
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
             tenantId = userDetails.getTenantId(); // Obtener el tenantId del usuario autenticado
+            userId = userDetails.getId();
+            roles = userDetails.getAuthorities().stream()
+            		.map(GrantedAuthority::getAuthority)
+            		.collect(Collectors.toSet());
+            		
         }
 
         if (tenantId == null) {
             throw new RuntimeException("Tenant ID not found for the authenticated user.");
         }
 
-        List<Project> projects = projectService.getAllProjects(tenantId);
+        List<Project> projects ;
+        
+        if(roles.contains("ROLE_ADMIN")) {
+        	projects= projectService.getAllProjects(tenantId);
+        }else if(roles.contains("ROLE_MODERATOR")){
+        		projects = projectService.getProjectsByResponsible(tenantId, userId);
+        }else if(roles.contains("ROLE_USER")){
+        	projects = projectService.getProjectsByMenber(tenantId, userId);
+        	
+        }else {
+        	throw new RuntimeException("User role no found");
+        }
+        
         
         // Mapear los proyectos a ProjectDTO
            List<ProjectDTO> projectDTOs = projects.stream().map(project -> {
@@ -129,7 +150,7 @@ public class ProjectController {
     
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR') or hasRole('USER') " )
     public ResponseEntity<ProjectDTO> getProject(@PathVariable("id") Long id) {
         // Obtener el nombre de usuario y el tenantId desde el token JWT
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -138,6 +159,7 @@ public class ProjectController {
         if (authentication != null && authentication.getPrincipal() instanceof UserDetailsImpl) {
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
             tenantId = userDetails.getTenantId(); // Obtener el tenantId del usuario autenticado
+            
         }
 
         if (tenantId == null) {
