@@ -46,7 +46,7 @@ public class User {
 	    )
 	    private Set<Role> roles = new HashSet<>();
 
-	    @ManyToMany(mappedBy = "members")
+	    @ManyToMany(mappedBy = "members", cascade = CascadeType.REMOVE)
 	    @JsonBackReference
 	    private Set<Project> projects = new HashSet<>();
     // Getters y setters

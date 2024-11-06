@@ -60,8 +60,8 @@ public class UserController {
         return userService.updateUser(id, userDetails);
     }
 
-    @DeleteMapping("/{id}")
-    public String deleteUser(@PathVariable Long id) {
+    @DeleteMapping("/{userId}")
+    public String deleteUser(@PathVariable("userId") Long id) {
         userService.deleteUser(id);
         return "User deleted successfully with id " + id;
     }

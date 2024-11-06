@@ -38,7 +38,7 @@ import com.gestion_tarea.repository.RoleRepository;
 import com.gestion_tarea.repository.TenantRepository;
 import com.gestion_tarea.repository.UserRepository;
 import com.gestion_tarea.security.jwt.JwtUtils;
-
+import com.gestion_tarea.security.services.ProjectService;
 import com.gestion_tarea.security.services.UserDetailsImpl;
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -63,6 +63,8 @@ public class AuthController {
   TenantRepository tenantRepository; // Nuevo: Repositorio para manejar tenants
   @Autowired
   ProjectRepository projectRepository;
+	@Autowired
+	private ProjectService projectService;
 
   @PostMapping("/signin")
   public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -93,21 +95,27 @@ public class AuthController {
   
   
   
-  
-  // 1. Registro de una nueva empresa y usuario inicial (Admin)
   @PostMapping("/registerCompany")
   public ResponseEntity<?> registerCompany(@Valid @RequestBody SignupRequest signUpRequest) {
+      // Verificar si el nombre de usuario ya está en uso
       if (userRepository.existsByUsername(signUpRequest.getUsername())) {
           return ResponseEntity.badRequest().body(new MessageResponse("Error: Username is already taken!"));
       }
 
+      // Verificar si el correo electrónico ya está en uso
       if (userRepository.existsByEmail(signUpRequest.getEmail())) {
           return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
       }
 
-      // Crear el tenant si no existe
-      Tenant tenant = tenantRepository.findByName(signUpRequest.getTenantName())
-              .orElseGet(() -> tenantRepository.save(new Tenant(signUpRequest.getTenantName())));
+      // Verificar si el tenant ya existe
+      Optional<Tenant> existingTenant = tenantRepository.findByName(signUpRequest.getTenantName());
+      if (existingTenant.isPresent()) {
+          return ResponseEntity.badRequest().body(new MessageResponse("Error: Tenant already exists!"));
+      }
+
+      // Crear un nuevo tenant si no existe
+      Tenant tenant = new Tenant(signUpRequest.getTenantName());
+      tenantRepository.save(tenant);
 
       // Crear el usuario con rol de ADMIN por defecto
       User user = new User(signUpRequest.getUsername(),
@@ -123,14 +131,6 @@ public class AuthController {
       // Guardar el usuario inicial
       userRepository.save(user);
 
-      // Asociar el usuario inicial a un proyecto si se proporciona
-    //  String projectName = signUpRequest.getProjectName();
-      //if (projectName != null && !projectName.isEmpty()) {
-        //  Project project = projectRepository.findByNameAndTenantId(projectName, tenant.getId())
-          //        .orElseGet(() -> projectRepository.save(new Project(projectName, tenant)));
-          //project.getMembers().add(user);
-          //projectRepository.save(project);
-      //}
 
       return ResponseEntity.ok(new MessageResponse("Company and Admin registered successfully!"));
   }
@@ -139,10 +139,11 @@ public class AuthController {
   @PostMapping("/registerUserToCompany")
   @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<?> registerUserToCompany(@Valid @RequestBody SignupRequest signUpRequest) {
-      if (!tenantRepository.existsByName(signUpRequest.getTenantName())) {
-          return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse("Tenant not found"));
-      }
-
+      // Validación de tenant
+      Tenant tenant = tenantRepository.findByName(signUpRequest.getTenantName())
+              .orElseThrow(() -> new RuntimeException("Error: Tenant is not found."));
+      
+      // Validación de usuario
       if (userRepository.existsByUsername(signUpRequest.getUsername())) {
           return ResponseEntity.badRequest().body(new MessageResponse("Error: Username is already taken!"));
       }
@@ -151,57 +152,59 @@ public class AuthController {
           return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
       }
 
-      // Asignar el usuario al tenant existente
-      Tenant tenant = tenantRepository.findByName(signUpRequest.getTenantName())
-              .orElseThrow(() -> new RuntimeException("Error: Tenant is not found."));
+      // Crear nuevo usuario
       User user = new User(signUpRequest.getUsername(),
-              signUpRequest.getEmail(),
-              encoder.encode(signUpRequest.getPassword()));
+                           signUpRequest.getEmail(),
+                           encoder.encode(signUpRequest.getPassword()));
       user.setTenant(tenant);
 
-      // Asignar roles en base a la solicitud
+      // Asignación de roles
       Set<String> strRoles = signUpRequest.getRole();
-      System.out.println(strRoles.toString());
       Set<Role> roles = new HashSet<>();
-      if (strRoles == null) {
-          Role userRole = roleRepository.findByName(ERole.ROLE_USER)
-                  .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-          roles.add(userRole);
+      if (strRoles == null || strRoles.isEmpty()) {
+          roles.add(roleRepository.findByName(ERole.ROLE_USER)
+                  .orElseThrow(() -> new RuntimeException("Error: Role is not found.")));
       } else {
           strRoles.forEach(role -> {
               switch (role) {
                   case "admin":
-                      Role adminRole = roleRepository.findByName(ERole.ROLE_ADMIN)
-                              .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-                      roles.add(adminRole);
+                      roles.add(roleRepository.findByName(ERole.ROLE_ADMIN)
+                              .orElseThrow(() -> new RuntimeException("Error: Role is not found.")));
                       break;
                   case "mod":
-                      Role modRole = roleRepository.findByName(ERole.ROLE_MODERATOR)
-                              .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-                      roles.add(modRole);
+                      roles.add(roleRepository.findByName(ERole.ROLE_MODERATOR)
+                              .orElseThrow(() -> new RuntimeException("Error: Role is not found.")));
                       break;
                   default:
-                      Role userRole = roleRepository.findByName(ERole.ROLE_USER)
-                              .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-                      roles.add(userRole);
+                      roles.add(roleRepository.findByName(ERole.ROLE_USER)
+                              .orElseThrow(() -> new RuntimeException("Error: Role is not found.")));
+                      break;
               }
           });
       }
       user.setRoles(roles);
 
-      // Guardar el nuevo usuario en el tenant
+      // Guardar el nuevo usuario
       userRepository.save(user);
 
-      // Asociar al proyecto si se proporciona
+      // Asociar el usuario al proyecto, si es necesario
       String projectName = signUpRequest.getProjectName();
       if (projectName != null && !projectName.isEmpty()) {
-          Project project = projectRepository.findByNameAndTenantId(projectName, tenant.getId())
-                  .orElseThrow(() -> new RuntimeException("Project not found for the given name and tenant"));
-          project.getMembers().add(user);
-          projectRepository.save(project);
+          Optional<Project> project = projectRepository.findByNameAndTenantId(projectName, tenant.getId());
+          if (project.isPresent()) {
+              try {
+                  Project updatedProject = projectService.addMemberToProject(project.get().getId(), user.getUsername());
+                  return ResponseEntity.ok(updatedProject);
+              } catch (RuntimeException e) {
+                  return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+              }
+          } else {
+              return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse("Project not found for the given name and tenant"));
+          }
       }
 
       return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
   }
+
 
 }

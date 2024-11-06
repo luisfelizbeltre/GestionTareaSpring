@@ -37,7 +37,7 @@ public class Project {
 	    )
 	    private Set<User> members = new HashSet<>();
 
-	    @OneToMany(mappedBy = "project")
+	    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
 	    @JsonManagedReference
 	    private Set<Task> tasks = new HashSet<>();
 

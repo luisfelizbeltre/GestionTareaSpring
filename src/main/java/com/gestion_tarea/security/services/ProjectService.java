@@ -1,15 +1,24 @@
 package com.gestion_tarea.security.services;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.config.ConfigDataResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import com.gestion_tarea.models.Project;
+import com.gestion_tarea.models.Task;
 import com.gestion_tarea.models.Tenant;
 import com.gestion_tarea.models.User;
+import com.gestion_tarea.models.UserDto;
 import com.gestion_tarea.repository.ProjectRepository;
 import com.gestion_tarea.repository.UserRepository;
+
+import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class ProjectService {
@@ -76,11 +85,35 @@ public class ProjectService {
 		return projectRepository.findByTenantId(tenanId);
 	}
 	
+	
+	
+	
 	public Project getProjectById(Long id,Long tenanId){
 		return projectRepository.findByIdAndTenantId(id, tenanId)
 				.orElseThrow(()->new RuntimeException("project np fkfds"));
 				
 	}
+	
+	public void deleteProject(Long id,Long tenantId) {
+		
+		Project project = getProjectById(id, tenantId);
+		
+
+	    // Limpiar la relación con los miembros
+	    for (User member : project.getMembers()) {
+	        member.getProjects().remove(project); // Si tienes una lista de proyectos en User
+	    }
+	    project.getMembers().clear(); // Limpiar la lista de miembros
+
+	    // Limpiar la relación con las tareas
+	    for (Task task : project.getTasks()) {
+	        task.setProject(null); // Establecer la referencia del proyecto a null
+	    }
+	    project.getTasks().clear(); // Limpiar la lista de tareas
+		projectRepository.delete(project);
+		
+	}
+	
 	public Project addMemberToProject(Long projectId, String username) {
 	    // Buscar el proyecto por su ID
 	    Optional<Project> projectOptional = projectRepository.findById(projectId);
@@ -110,12 +143,59 @@ public class ProjectService {
 	    return projectRepository.save(project);
 	}
 	
+	
+	
 	public List<Project> getProjectsByMenber(Long tenantId,Long userId){
 		return projectRepository.findByTenantIdAndMembers_Id(tenantId,userId);
 	}
 	
+	
+	
+	
 	public List<Project> getProjectsByResponsible(Long tenantId,Long userId){
 		return projectRepository.findByTenantIdAndResponsible_Id(tenantId, userId);
 	}
+	
+	
+	
+	
+	public List<UserDto> getAllMembers(Long tenantId,Long projectId){
+		
+		Optional<Project> projectOptional = projectRepository.findByIdAndTenantId(projectId, tenantId);
+		
+		if(projectOptional.isEmpty()) {
+			throw new EntityNotFoundException("project not found with ID");
+		}
+		
+		
+		List<UserDto> users = projectOptional.get().getMembers()
+				.stream()
+				.map(member -> new UserDto(member.getId() ,member.getUsername(),member.getEmail()))
+				.collect(Collectors.toList());
+		
+		return users;
+		
+		
+		
+		
+	}
+
+
+	public void deleteMember(Long tenantId, Long projectId, Long memberId) {
+		Optional<Project> projectOptional = projectRepository.findByIdAndTenantId(projectId, tenantId);
+		
+		if (projectOptional.isPresent()) {
+			
+			Project project = projectOptional.get();
+			project.getMembers().removeIf(member->member.getId().equals(memberId) );
+			projectRepository.save(project);
+		}else {
+			throw new EntityNotFoundException("project not found");
+		}
+		
+	}
+	
+	
+	
 
 }

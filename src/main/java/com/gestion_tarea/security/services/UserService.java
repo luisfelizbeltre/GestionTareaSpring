@@ -4,8 +4,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
+import com.gestion_tarea.models.Task;
 import com.gestion_tarea.models.User;
 import com.gestion_tarea.models.UserDto;
+import com.gestion_tarea.repository.ProjectRepository;
+import com.gestion_tarea.repository.TaskRepository;
 import com.gestion_tarea.repository.UserRepository;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +21,10 @@ public class UserService  {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private TaskRepository taskRepository;
+    @Autowired
+    private ProjectRepository  projectRepository ;
 
    public List<UserDto> getAllUser(){
 	   
@@ -27,7 +35,7 @@ public class UserService  {
 		            UserDto dto = new UserDto();
 		            dto.setEmail(user.getEmail());
 		            dto.setUsername(user.getUsername());
-
+		            dto.setId(user.getId());
 		             // Inicializar la lista de roles en el DTO
 		            List<String> roleNames = new ArrayList<>();
 
@@ -80,7 +88,21 @@ public class UserService  {
     }
 
     public void deleteUser(Long id) {
-        userRepository.deleteById(id);
+    	Optional<User> userOptional = userRepository.findById(id);
+    	
+    	if (userOptional.isPresent()) {
+    		User user = userOptional.get();
+    		
+    		
+    		
+    		 List<Task> task =	taskRepository.findByAssignedTo(user);
+    		    taskRepository.deleteAll(task);
+    		    
+    		        userRepository.deleteById(id);
+			
+		}
+    	
+   
     }
 
     public Optional<User> getUserByName(String name) {

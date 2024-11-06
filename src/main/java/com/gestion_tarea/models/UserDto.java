@@ -3,7 +3,11 @@ package com.gestion_tarea.models;
 import java.util.List;
 
 public class UserDto {
-    public String getUsername() {
+    
+    public UserDto() {
+    	
+    }
+	public String getUsername() {
 		return username;
 	}
 	public void setUsername(String username) {
@@ -21,11 +25,25 @@ public class UserDto {
 	public void setEmail(String email) {
 		this.email = email;
 	}
+	public UserDto(Long id, String username, String email) {
+		
+		this.id = id;
+		this.username = username;
+		this.email = email;
+		
+	}
 	public List<String> getRoles() {
 		return roles;
 	}
 	public void setRoles(List<String> roles) {
 		this.roles = roles;
+	}
+	private Long id;
+	public Long getId() {
+		return id;
+	}
+	public void setId(Long id) {
+		this.id = id;
 	}
 	private String username;
     private String password;
