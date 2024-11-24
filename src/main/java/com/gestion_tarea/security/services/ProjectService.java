@@ -14,7 +14,7 @@ import com.gestion_tarea.models.Project;
 import com.gestion_tarea.models.Task;
 import com.gestion_tarea.models.Tenant;
 import com.gestion_tarea.models.User;
-import com.gestion_tarea.models.UserDto;
+import com.gestion_tarea.payload.response.UserDto;
 import com.gestion_tarea.repository.ProjectRepository;
 import com.gestion_tarea.repository.UserRepository;
 
@@ -27,6 +27,11 @@ public class ProjectService {
     private ProjectRepository projectRepository;
     @Autowired
     private UserRepository userRepository;
+    
+    public List<Project> getAllProjects() {
+		// TODO Auto-generated method stub
+		return projectRepository.findAll();
+	}
     
     
     

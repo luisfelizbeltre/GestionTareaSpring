@@ -18,9 +18,9 @@ import org.springframework.web.bind.annotation.*;
 
 import com.gestion_tarea.models.ERole;
 import com.gestion_tarea.models.Project;
-import com.gestion_tarea.models.ProjectDTO;
 import com.gestion_tarea.models.Tenant;
 import com.gestion_tarea.models.User;
+import com.gestion_tarea.payload.response.ProjectDTO;
 import com.gestion_tarea.repository.TenantRepository;
 import com.gestion_tarea.repository.UserRepository;
 import com.gestion_tarea.security.services.ProjectService;
@@ -101,7 +101,7 @@ public class ProjectController {
 	
 
 	@GetMapping("/all")
-	@PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR') or hasRole('USER') ")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR') or hasRole('USER') or hasRole('SUPER') ")
 	public ResponseEntity<?> getAllProjects() {
 		// Obtener el nombre de usuario y el tenantId desde el token JWT
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -116,6 +116,9 @@ public class ProjectController {
 			roles = userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority)
 					.collect(Collectors.toSet());
 
+		}
+		if (roles.contains("ROLE_SUPER")) {
+			return ResponseEntity.ok(projectService.getAllProjects()); 
 		}
 
 		if (tenantId == null) {

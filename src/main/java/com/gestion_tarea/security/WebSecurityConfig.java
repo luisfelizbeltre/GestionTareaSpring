@@ -19,7 +19,6 @@ import com.gestion_tarea.security.services.UserDetailsServiceImpl;
 
 @Configuration
 @EnableMethodSecurity
-
 public class WebSecurityConfig { 
   @Autowired
   UserDetailsServiceImpl userDetailsService;
@@ -29,32 +28,26 @@ public class WebSecurityConfig {
 
   @Bean
   public AuthTokenFilter authenticationJwtTokenFilter() {
-    return new AuthTokenFilter();
+      return new AuthTokenFilter();
   }
-
 
   @Bean
   public DaoAuthenticationProvider authenticationProvider() {
       DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-       
       authProvider.setUserDetailsService(userDetailsService);
       authProvider.setPasswordEncoder(passwordEncoder());
-   
       return authProvider;
   }
 
-
   @Bean
   public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
-    return authConfig.getAuthenticationManager();
+      return authConfig.getAuthenticationManager();
   }
 
   @Bean
   public PasswordEncoder passwordEncoder() {
-    return new BCryptPasswordEncoder();
+      return new BCryptPasswordEncoder();
   }
-
-
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -62,18 +55,14 @@ public class WebSecurityConfig {
           .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
           .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
           .authorizeHttpRequests(auth -> 
-              auth.requestMatchers("/api/auth/**").permitAll()
-                  .requestMatchers("/api/test/**").permitAll()
-                  .requestMatchers("/**").permitAll()  // Allow all requests
+              auth.requestMatchers("/api/auth/**", "/api/test/**").permitAll()
                   .anyRequest().authenticated()
           )
-          .cors().and(); // Enable CORS
+          .cors(); // Habilitar CORS desde el filtro de Spring
 
       http.authenticationProvider(authenticationProvider());
-
       http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
-      
+
       return http.build();
   }
-
 }

@@ -1,7 +1,10 @@
-package com.gestion_tarea.models;
+package com.gestion_tarea.payload.response;
 
 import java.time.LocalDateTime;
 import java.util.Set;
+
+import com.gestion_tarea.models.Task;
+import com.gestion_tarea.models.User;
 
 public class ProjectDTO {
     private Long id;

@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.gestion_tarea.models.Project;
 //import com.gestion_tarea.models.User;
+import com.gestion_tarea.models.User;
 
 public interface ProjectRepository extends JpaRepository<Project, Long> {
 
@@ -22,5 +23,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
 
 	List<Project> findByTenantIdAndResponsible_Id(Long tenantId, Long userId);
 	//List<Project> findBymembersContaining(User user);
+
+	List<Project> findByResponsible(User user);
 
 }

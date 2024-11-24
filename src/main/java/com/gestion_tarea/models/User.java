@@ -16,7 +16,7 @@ import jakarta.validation.constraints.Size;
         @UniqueConstraint(columnNames = "email") 
     })
 public class User {
-	 @Id
+	 	@Id
 	    @GeneratedValue(strategy = GenerationType.IDENTITY)
 	    private Long id;
 
@@ -34,10 +34,10 @@ public class User {
 	    private String password;
 
 	    @ManyToOne
-	    @JoinColumn(name = "tenant_id", nullable = false)
+	    @JoinColumn(name = "tenant_id", nullable = true)
 	    @JsonIgnore
 	    private Tenant tenant;
-
+//
 	    @ManyToMany(fetch = FetchType.LAZY)
 	    @JoinTable(
 	        name = "user_roles",
@@ -46,7 +46,7 @@ public class User {
 	    )
 	    private Set<Role> roles = new HashSet<>();
 
-	    @ManyToMany(mappedBy = "members", cascade = CascadeType.REMOVE)
+	    @ManyToMany(mappedBy = "members")
 	    @JsonBackReference
 	    private Set<Project> projects = new HashSet<>();
     // Getters y setters

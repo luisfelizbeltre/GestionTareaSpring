@@ -6,15 +6,16 @@ package com.gestion_tarea.security.services;
 	import org.springframework.stereotype.Service;
 import com.gestion_tarea.models.Project;
 import com.gestion_tarea.models.Task;
-import com.gestion_tarea.models.TaskDTO;
 import com.gestion_tarea.models.Tenant;
 import com.gestion_tarea.models.User;
+import com.gestion_tarea.payload.response.TaskDTO;
 import com.gestion_tarea.repository.ProjectRepository;
 import com.gestion_tarea.repository.TaskRepository;
 import com.gestion_tarea.repository.TenantRepository;
 import com.gestion_tarea.repository.UserRepository;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 	@Service
 	public class TaskService {
@@ -32,14 +33,23 @@ import java.util.Optional;
 	    public List<Task> getAllTasks() {
 	        return taskRepository.findAll();
 	    }
+	    public Task getTaskById(Long id) {
+	        return taskRepository.findById(id).orElse(null);  // Assuming you have a repository for Task
+	    }
+	    public Task saveTask(Task task) {
+	        return taskRepository.save(task);
+	    }
 
 
 
 	    // Obtener todas las tareas de un usuario filtrado por tenant y proyecto
-	    public List<Task> getTasksByUsernameAndTenantId(String username, Long tenantId) {
-	        return taskRepository.findByAssignedToUsernameAndTenantId(username, tenantId);
+	    public List<TaskDTO> getTasksByUsernameAndTenantId(String username, Long tenantId) {
+	        List<Task> tasks = taskRepository.findByAssignedToUsernameAndTenantId(username, tenantId);
+
+	        // Convertir las entidades Task a objetos TaskDTO
+	        return tasks.stream().map(task -> this.convertToDTO(task)).collect(Collectors.toList());
 	    }
-	    
+
 	    public boolean deleteTaskByIdAndTenantId(Long id, Long tenantId) {
 	    	Optional<Task> task = taskRepository.findByIdAndTenantId(id,tenantId);
 	    	
@@ -89,7 +99,21 @@ import java.util.Optional;
 
 
 
-
+	    private TaskDTO convertToDTO(Task task) {
+	    	
+	        TaskDTO taskDTO = new TaskDTO();
+	        taskDTO.setProject(task.getProject().getId());// Relación de proyecto
+	        taskDTO.setProjectName(task.getProject().getName());// Relación de proyecto
+	        taskDTO.setId(task.getId());
+	        taskDTO.setAssignedTo(task.getAssignedTo().getUsername());
+	        taskDTO.setTitle(task.getTitle());
+	        taskDTO.setDescription(task.getDescription());
+	        taskDTO.setPriority(task.getPriority());
+	        taskDTO.setStatus(task.getStatus());
+	        taskDTO.setDueDate(task.getDueDate());
+	        taskDTO.setTenantId(task.getTenant().getId());// Relación de tenant
+	        return taskDTO;
+	    }
 	
 
 

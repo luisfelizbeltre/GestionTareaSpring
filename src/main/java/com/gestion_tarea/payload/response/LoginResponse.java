@@ -1,4 +1,4 @@
-package com.gestion_tarea.models;
+package com.gestion_tarea.payload.response;
 
 
 public class LoginResponse {

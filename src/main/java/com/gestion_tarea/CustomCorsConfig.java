@@ -15,6 +15,9 @@ public class CustomCorsConfig {
         config.setAllowCredentials(true);
         config.addAllowedOrigin("http://localhost:8081");
         config.addAllowedOrigin("http://192.168.100.137:8081");
+        config.addAllowedOrigin("http://192.168.100.128:8081");
+        config.addAllowedOrigin("http://23.20.232.178");  // Cambiar el origen a la IP del servidor
+
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         

@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.gestion_tarea.models.User;
-import com.gestion_tarea.models.UserDto;
+import com.gestion_tarea.payload.response.UserDto;
 import com.gestion_tarea.security.services.UserService;
 import java.util.List;
 import java.util.Optional;
@@ -19,8 +19,8 @@ public class UserController {
 //    private RoleRepository roleRepository;
 
     @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR')")
-    public List<UserDto> getAllUsers() {
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR')or hasRole('SUPER')" )
+    public List<?> getAllUsers() {
     	
     	
     	

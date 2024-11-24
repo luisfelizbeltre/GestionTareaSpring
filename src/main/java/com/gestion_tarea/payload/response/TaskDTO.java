@@ -1,8 +1,9 @@
-package com.gestion_tarea.models;
+package com.gestion_tarea.payload.response;
 
 import java.util.Date;
 
 public class TaskDTO {
+	private Long id;
     private Long project;
     private String assignedTo;  // ID del usuario
     private String title;
@@ -11,6 +12,7 @@ public class TaskDTO {
     private String status;
     private Date dueDate;
     private Long tenantId;
+    private String projectName;
 
 
 	public String getTitle() {
@@ -60,6 +62,18 @@ public class TaskDTO {
 	}
 	public void setProject(Long project) {
 		this.project = project;
+	}
+	public String getProjectName() {
+		return projectName;
+	}
+	public void setProjectName(String projectName) {
+		this.projectName = projectName;
+	}
+	public Long getId() {
+		return id;
+	}
+	public void setId(Long id) {
+		this.id = id;
 	}
     
     

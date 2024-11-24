@@ -1,19 +1,23 @@
 package com.gestion_tarea.security.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import com.gestion_tarea.models.Project;
 import com.gestion_tarea.models.Task;
 import com.gestion_tarea.models.User;
-import com.gestion_tarea.models.UserDto;
+import com.gestion_tarea.payload.response.UserDto;
 import com.gestion_tarea.repository.ProjectRepository;
 import com.gestion_tarea.repository.TaskRepository;
 import com.gestion_tarea.repository.UserRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,10 +30,32 @@ public class UserService  {
     @Autowired
     private ProjectRepository  projectRepository ;
 
-   public List<UserDto> getAllUser(){
+   public List<?> getAllUser(){
+	   Set<String> roles = null;
 	   
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	   if (authentication != null && authentication.getPrincipal() instanceof UserDetailsImpl) {
+			UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+			 roles = userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority)
+						.collect(Collectors.toSet());
+	   }
+	  
+		if (roles.contains("ROLE_SUPER")) {
+			 List<UserDto> userDtos = userstoDTO(userRepository.findAll());
+			return  userDtos ;
+			
+		}
 	   List<User> users = userRepository.findByTenantId(getAuthenticatedTenantId());
 	   
+	   List<UserDto> userDtos = userstoDTO(users);
+
+		return userDtos;
+
+	   
+	   
+   }
+   
+   public List<UserDto> userstoDTO(List<User> users) {
 	   List<UserDto> userDtos = users.stream()
 		        .map(user -> {
 		            UserDto dto = new UserDto();
@@ -49,8 +75,6 @@ public class UserService  {
 		        .collect(Collectors.toList());
 
 		return userDtos;
-
-	   
 	   
    }
     
@@ -92,8 +116,17 @@ public class UserService  {
     	
     	if (userOptional.isPresent()) {
     		User user = userOptional.get();
+            // Limpia las relaciones de proyectos donde es responsable
+            List<Project> projects = projectRepository.findByResponsible(user);
+            projects.forEach(project -> project.setResponsible(null));
+            projectRepository.saveAll(projects); 
     		
-    		
+    		 
+    		  // Limpia las relaciones entre el usuario y los proyectos
+            user.getProjects().forEach(project -> project.getMembers().remove(user));
+            user.getProjects().clear();
+            userRepository.save(user);
+
     		
     		 List<Task> task =	taskRepository.findByAssignedTo(user);
     		    taskRepository.deleteAll(task);

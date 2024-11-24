@@ -4,6 +4,8 @@ import java.util.HashSet;
 import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -21,17 +23,17 @@ public class Tenant {
 	    @Column(nullable = false, unique = true)
 	    private String name;
 
-	    @OneToMany(mappedBy = "tenant")
-	    @JsonIgnore // Ignorar la serialización de la lista de proyectos
+	    @OneToMany(mappedBy = "tenant",cascade = CascadeType.ALL, orphanRemoval = true)
+	   // Ignorar la serialización de la lista de proyectos
 	    private Set<Project> projects = new HashSet<>();
 	    
 
-	    @OneToMany(mappedBy = "tenant")
-	    @JsonIgnore // Ignorar la serialización de la lista de proyectos
+	    @OneToMany(mappedBy = "tenant",cascade = CascadeType.ALL, orphanRemoval = true)
+	     // Ignorar la serialización de la lista de proyectos
 	    private Set<Task> task = new HashSet<>();
 	    
 
-	    @OneToMany(mappedBy = "tenant")
+	    @OneToMany(mappedBy = "tenant",cascade = CascadeType.ALL, orphanRemoval = true)
 	    @JsonManagedReference
 	    private Set<User> users = new HashSet<>();
     

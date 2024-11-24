@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.gestion_tarea.models.Project;
 import com.gestion_tarea.models.Task;
-import com.gestion_tarea.models.TaskDTO;
+import com.gestion_tarea.payload.response.TaskDTO;
 import com.gestion_tarea.repository.UserRepository;
 import com.gestion_tarea.security.services.TaskService;
 import com.gestion_tarea.security.services.UserDetailsImpl;
@@ -32,13 +32,29 @@ public class TaskController {
     public List<Task> getAllTasks() {
         return taskService.getAllTasks();
     }
-
+  
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
+    public ResponseEntity<Task> updateTask(@PathVariable("id") Long id, @RequestBody TaskDTO task) {
+        try {
+            Task existingTask = taskService.getTaskById(id);
+            if (existingTask != null) {
+                existingTask.setStatus(task.getStatus());  // Actualiza el estado de la tarea
+                taskService.saveTask(existingTask);  // Guarda la tarea actualizada
+                return ResponseEntity.ok(existingTask);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
 
     
     
     @GetMapping("")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public List<Task> listTasks() {
+    public List<TaskDTO> listTasks() {
         // Obtener el nombre de usuario y el tenantId desde el token JWT
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = null;
