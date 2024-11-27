@@ -96,9 +96,45 @@ public class ProjectController {
 					.body("Error al crear el proyecto: " + e.getMessage());
 		}
 	}
-	
-	
-	
+	@PutMapping("/update/{projectId}")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR')")
+	public ResponseEntity<?> updateProject(@PathVariable("projectId") Long id, @RequestBody ProjectDTO projectDTO) {
+	    try {
+	        // Obtener Tenant del usuario autenticado
+	        Long tenantId = getAuthenticatedTenantId();
+	        if (tenantId == null) {
+	            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+	                    .body("No tenant ID found for the authenticated user.");
+	        }
+
+	        Tenant tenant = tenantRepository.findById(tenantId)
+	                .orElseThrow(() -> new RuntimeException("Tenant not found for the authenticated user."));
+
+	        // Mapear DTO a entidad
+	        Project updatedProject = new Project();
+	        updatedProject.setName(projectDTO.getName());
+	        updatedProject.setDescription(projectDTO.getDescription());
+	        updatedProject.setEndDate(projectDTO.getEndDate());
+
+	        // Buscar usuario responsable si existe
+	        if (projectDTO.getResponsibleUsername() != null) {
+	            User responsibleUser = userRepository.findByUsernameAndTenantId(projectDTO.getResponsibleUsername(), tenantId)
+	                    .orElseThrow(() -> new RuntimeException("Responsible user not found."));
+	            updatedProject.setResponsible(responsibleUser);
+	        }
+
+	        // Actualizar proyecto
+	        Project savedProject = projectService.updateProject(id, updatedProject, tenant);
+
+	        return ResponseEntity.ok(savedProject);
+	    } catch (IllegalArgumentException e) {
+	        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+	    } catch (Exception e) {
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while updating the project.");
+	    }
+	}
+
+
 
 	@GetMapping("/all")
 	@PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR') or hasRole('USER') or hasRole('SUPER') ")

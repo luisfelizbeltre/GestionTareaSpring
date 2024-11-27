@@ -36,6 +36,35 @@ public class ProjectService {
     
     
     
+    public Project updateProject(Long projectId, Project updatedProjectData, Tenant tenant) {
+        // Verificar que el proyecto existe y pertenece al Tenant
+        Project existingProject = projectRepository.findByIdAndTenantId(projectId, tenant.getId())
+                .orElseThrow(() -> new RuntimeException("Project not found or unauthorized access."));
+
+        // Verificar que el nombre no esté vacío
+        if (updatedProjectData.getName() == null || updatedProjectData.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("The project name cannot be null or empty.");
+        }
+
+        // Verificar si hay duplicados (excluyendo el propio proyecto que se está actualizando)
+        Optional<Project> duplicateProject = projectRepository.findByNameAndTenantId(updatedProjectData.getName(), tenant.getId());
+        if (duplicateProject.isPresent() && !duplicateProject.get().getId().equals(projectId)) {
+            throw new IllegalArgumentException("A project with this name already exists in this tenant.");
+        }
+
+        // Actualizar los datos del proyecto
+        existingProject.setName(updatedProjectData.getName());
+        existingProject.setDescription(updatedProjectData.getDescription());
+        existingProject.setEndDate(updatedProjectData.getEndDate());
+
+        // Asociar nuevo responsable si se proporciona
+        if (updatedProjectData.getResponsible() != null) {
+            existingProject.setResponsible(updatedProjectData.getResponsible());
+        }
+
+        // Guardar cambios en el repositorio
+        return projectRepository.save(existingProject);
+    }
 
       
         public Project createProject(Project project, Tenant tenant) {
@@ -199,6 +228,12 @@ public class ProjectService {
 		}
 		
 	}
+
+
+
+
+
+
 	
 	
 	
