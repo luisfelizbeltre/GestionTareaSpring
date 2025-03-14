@@ -17,6 +17,7 @@ public class CustomCorsConfig {
         config.addAllowedOrigin("http://192.168.100.137:8081");
         config.addAllowedOrigin("http://192.168.100.128:8081");
         config.addAllowedOrigin("http://23.20.232.178");  // Cambiar el origen a la IP del servidor
+          config.addAllowedOrigin("https://gestion-tarea-vue-x46i.vercel.app");
 
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
